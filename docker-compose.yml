@@ -1,0 +1,62 @@
+version: '3.9'
+
+services:
+  mqtt-broker:
+    build:
+      context: .
+      dockerfile: Dockerfile.mqtt
+    image: mqtt/mosquitto:v0
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+    networks:
+      - mqtt-app
+
+  dd-agent:
+    container_name: dd-agent-0
+    image: gcr.io/datadoghq/agent:latest-jmx
+    env_file: apikey.env
+    environment:
+      - DD_HOSTNAME=datadog
+      - DD_APM_ENABLED=true
+      - DD_APM_NON_LOCAL_TRAFFIC=true 
+      - DD_PROCESS_AGENT_ENABLED=true 
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC="true" 
+      - DD_LOG_LEVEL=debug
+      - DD_LOGS_ENABLED=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+      - DD_CONTAINER_EXCLUDE_LOGS="name:datadog-agent"
+      - SD_JMX_ENABLE=true
+    ports:
+      - "8125:8125"
+      - "8126:8126"
+    volumes:
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - mqtt-app
+
+
+  springbootmqtt:
+    build:
+      context: .
+      dockerfile: Dockerfile.spring
+    container_name: springbootmqtt
+    image: mqtt/springmqtt:v0 
+    environment:
+      - DD_AGENT_HOST=dd-agent-0
+      - MOSQUITTO_HOST=mosquitto
+      - JAVA_TOOL_OPTIONS=-Ddd.env=dev -Ddd.tags=env:dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mqtt-broker
+    networks:
+      - mqtt-app
+
+networks:
+  mqtt-app:
+    external: false
+    driver: bridge
+    name: mqtt-app

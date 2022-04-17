@@ -1,0 +1,4 @@
+FROM adoptopenjdk/openjdk11:jdk-11.0.11_9-debian
+
+COPY springbootmqtt/build/libs/springboot-mqtt-1.0.jar springboot-mqtt-1.0.jar 
+CMD ["java","-jar","springboot-mqtt-1.0.jar"]
