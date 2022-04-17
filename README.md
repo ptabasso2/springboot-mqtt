@@ -325,8 +325,8 @@ At this stage our application is up and running and based on these three distinc
 * Spring Boot service
 
 
-<p align="center">
-  <img src="img/Mqtt1.png" width="400" />
+<p align="left">
+  <img src="img/Mqtt1.png" width="850" />
 </p>
 
 
@@ -377,7 +377,7 @@ In particular, the last line of these log events displays the message received.
 
 3. Checking the related APM trace in the Datadog UI
 
-<p align="center">
-  <img src="img/Mqtt2.png" width="450" />
+<p align="left">
+  <img src="img/Mqtt2.png" width="850" />
 </p>
 
