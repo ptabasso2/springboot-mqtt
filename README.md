@@ -326,7 +326,7 @@ At this stage our application is up and running and based on these three distinc
 
 
 <p align="left">
-  <img src="img/Mqtt1.png" width="850" />
+  <img src="img/Mqtt3.png" width="850" />
 </p>
 
 
