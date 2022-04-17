@@ -25,6 +25,10 @@ In each section, we'll describe the required steps to take in order to reach the
 
 This tutorial is meant to understand how the Datadog Java sdk (`dd-trace-ot.jar`) can be used to efficiently instrument a Java Spring Boot application that interacts with a MQTT Broker.
 
+<p align="left">
+  <img src="img/Mqtt1.png" width="850" />
+</p>
+
 ### Pre-requisites
 
 + About 30 minutes
