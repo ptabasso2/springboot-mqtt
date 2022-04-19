@@ -1,8 +1,0 @@
-#Using remote debugger
-java -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005 -jar build/libs/springtest4-1.0.jar
-
-#Running the application
-java -jar build/libs/springtest4-1.0.jar
-
-#Testing the endpoint
-curl localhost:8080/Callme
