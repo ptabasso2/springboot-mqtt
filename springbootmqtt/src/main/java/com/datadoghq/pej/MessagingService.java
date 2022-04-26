@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,19 +43,44 @@ public class MessagingService {
         tracer.inject(span.context(), Format.Builtin.TEXT_MAP, new TextMapAdapter(mapinject));
 
         /* Serializing mapinject and converting the HashMap to a byte array */
-        ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-        ObjectOutputStream out = new ObjectOutputStream(byteOut);
-        out.writeObject(mapinject);
-        byte[] map = byteOut.toByteArray();
+        String stid = mapinject.get("x-datadog-trace-id");
+        long ltid = Long.valueOf(stid);
+        ByteBuffer bbftid = ByteBuffer.allocate(Long.BYTES);
+        bbftid.putLong(ltid);
+        byte[] btid = bbftid.array();
 
-        /* Serializing string message to a byte array */
-        byte[] message = data.getBytes();
 
-        /* JOin both byte arrays (map and message) to form a payload byte array */
-        ByteArrayOutputStream outInternal = new ByteArrayOutputStream();
-        outInternal.write(map);
-        outInternal.write(message);
-        byte[] payload = outInternal.toByteArray();
+        String spid = mapinject.get("x-datadog-parent-id");
+        long lpid = Long.valueOf(spid);
+        ByteBuffer bbfpid = ByteBuffer.allocate(Long.BYTES);
+        bbfpid.putLong(lpid);
+        byte[] bpid = bbfpid.array();
+
+        //Object[] mergedArray = Stream.of(bl1, bl2).flatMap(Stream::of).toArray();
+
+        String messageSent = "Un autre exemple de messsage";
+        byte[] bmsg = messageSent.getBytes();
+
+        /* Building the payload by merging the above arrays */
+
+        byte[] payload = new byte[btid.length + bpid.length + bmsg.length];
+
+        int pos = 0;
+        for (byte element : btid) {
+            payload[pos] = element;
+            pos++;
+        }
+
+        for (byte element : bpid) {
+            payload[pos] = element;
+            pos++;
+        }
+
+        for (byte element : bmsg) {
+            payload[pos] = element;
+            pos++;
+        }
+
 
         /* Wrapping the payload in the MqttMessage object */
         MqttMessage mqttMessage = new MqttMessage();
@@ -86,19 +112,52 @@ public class MessagingService {
 
         mqttClient.subscribeWithResponse(topic, (tpic, msg) -> {
 
-            /* Splitting the payload and extracting the first 203 bytes (fixed length) representing the serialized map */
-            byte[] serializedmap = Arrays.copyOfRange(msg.getPayload(), 0, MAPSIZE);
+            byte[] payload = msg.getPayload();
 
-            /* Extracting the next 4 bytes (variable length) which are representing the string message */
-            byte[] stringmessage = Arrays.copyOfRange(msg.getPayload(), MAPSIZE, msg.getPayload().length);
+            /* Splitting the payload into byte arrays */
 
-            /* Deserializing the map */
-            ByteArrayInputStream bIn = new ByteArrayInputStream(serializedmap);
-            ObjectInputStream in = new ObjectInputStream(bIn);
-            Map<String, String> mapextract = (Map<String, String>) in.readObject();
+            byte[] traceid = new byte[Long.BYTES];
+            byte[] parentid = new byte[Long.BYTES];
+            byte[] messageReceived = new byte[payload.length - traceid.length - parentid.length];
 
-            /* Deserializing the string */
-            String messageReceived = new String(stringmessage);
+            int tidlen = traceid.length;
+            int pidlen = parentid.length;
+
+            for (int i = 0; i < tidlen; i++) {
+                traceid[i] = payload[i];
+            }
+
+            for (int i = tidlen; i < tidlen + pidlen; i++) {
+                parentid[i - tidlen] = payload[i];
+            }
+
+            for (int i = tidlen + pidlen; i < payload.length; i++) {
+                messageReceived[i - tidlen - pidlen] = payload[i];
+            }
+
+            /* Extracting the content by generating two longs and the string message */
+
+            ByteBuffer buftid = ByteBuffer.allocate(Long.BYTES);
+            buftid.put(traceid);
+            buftid.flip();//need flip
+            long tid = buftid.getLong();
+
+
+            ByteBuffer bufpid = ByteBuffer.allocate(Long.BYTES);
+            bufpid.put(parentid);
+            bufpid.flip();//need flip
+            long pid = bufpid.getLong();
+
+            String message = new String(messageReceived);
+
+
+            /* Building the map to be used with tracer.extract() */
+
+            Map<String, String> mapextract = new HashMap<>();
+
+            mapextract.put("x-datadog-trace-id", Long.toString(tid));
+            mapextract.put("x-datadog-parent-id", Long.toString(pid));
+            mapextract.put("x-datadog-sampling-priority", "1");
 
             /* Retrieving the context of the parent span after */
             SpanContext parentSpan = tracer.extract(Format.Builtin.TEXT_MAP, new TextMapAdapter(mapextract));
@@ -112,7 +171,7 @@ public class MessagingService {
                 childspan.setTag("resource", "mqtt.subscribe");
                 childspan.setTag("customer_id", "45678");
                 Thread.sleep(2000L);
-                logger.info("Message received: " + messageReceived);
+                logger.info("Message received: " + message);
 
             } finally {
                 childspan.finish();

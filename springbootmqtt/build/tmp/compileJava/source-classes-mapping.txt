@@ -1,3 +1,5 @@
+com/datadoghq/pej/Test.java
+ com.datadoghq.pej.Test
 com/datadoghq/pej/MqttConfiguration.java
  com.datadoghq.pej.MqttConfiguration
 com/datadoghq/pej/MqttController.java
