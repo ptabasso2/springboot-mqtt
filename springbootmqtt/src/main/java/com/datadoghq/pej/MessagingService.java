@@ -42,7 +42,7 @@ public class MessagingService {
         Span span = tracer.buildSpan("Publish").start();
         tracer.inject(span.context(), Format.Builtin.TEXT_MAP, new TextMapAdapter(mapinject));
 
-        /* Serializing mapinject and converting the HashMap to a byte array */
+        /* Extracting ids from mapinject and building the payload byte array to be sent */
         String stid = mapinject.get("x-datadog-trace-id");
         long ltid = Long.valueOf(stid);
         ByteBuffer bbftid = ByteBuffer.allocate(Long.BYTES);
@@ -56,13 +56,11 @@ public class MessagingService {
         bbfpid.putLong(lpid);
         byte[] bpid = bbfpid.array();
 
-        //Object[] mergedArray = Stream.of(bl1, bl2).flatMap(Stream::of).toArray();
 
         String messageSent = "Un autre exemple de messsage";
         byte[] bmsg = messageSent.getBytes();
 
         /* Building the payload by merging the above arrays */
-
         byte[] payload = new byte[btid.length + bpid.length + bmsg.length];
 
         int pos = 0;
@@ -112,10 +110,10 @@ public class MessagingService {
 
         mqttClient.subscribeWithResponse(topic, (tpic, msg) -> {
 
+            /* Extracing the payload */
             byte[] payload = msg.getPayload();
 
             /* Splitting the payload into byte arrays */
-
             byte[] traceid = new byte[Long.BYTES];
             byte[] parentid = new byte[Long.BYTES];
             byte[] messageReceived = new byte[payload.length - traceid.length - parentid.length];
@@ -136,7 +134,6 @@ public class MessagingService {
             }
 
             /* Extracting the content by generating two longs and the string message */
-
             ByteBuffer buftid = ByteBuffer.allocate(Long.BYTES);
             buftid.put(traceid);
             buftid.flip();//need flip
@@ -152,7 +149,6 @@ public class MessagingService {
 
 
             /* Building the map to be used with tracer.extract() */
-
             Map<String, String> mapextract = new HashMap<>();
 
             mapextract.put("x-datadog-trace-id", Long.toString(tid));
