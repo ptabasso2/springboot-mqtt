@@ -1,7 +1,6 @@
 package com.datadoghq.pej;
 
 
-import io.opentracing.Tracer;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

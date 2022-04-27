@@ -1,5 +1,6 @@
 package com.datadoghq.pej;
 
+
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
@@ -14,12 +15,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+
 
 @Service
 public class MessagingService {
@@ -101,9 +101,6 @@ public class MessagingService {
             span.finish();
         }
 
-        //mqttClient.publish(topic, payload.getBytes(), qos, retained);
-
-        //mqttClient.disconnect();
     }
 
     public void subscribe(final String topic) throws MqttException, InterruptedException {
